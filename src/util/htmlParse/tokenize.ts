@@ -118,7 +118,6 @@ function init(input: string) {
 function emitToken(kind: TokenKind, newState = state, end = index) {
   // eslint-disable-next-line no-debugger
   let value = buffer.substring(sectionStart, end);
-  console.log(kind);
   if (kind === TokenKind.OpenTag || kind === TokenKind.CloseTag) {
     value = value.toLowerCase();
   }
@@ -134,7 +133,10 @@ function emitToken(kind: TokenKind, newState = state, end = index) {
   }
   if (!((kind === TokenKind.Literal || kind === TokenKind.Whitespace) && end === sectionStart)) {
     // empty literal should be ignored
-    tokens.push({ type: kind, start: sectionStart, end, value });
+    if(!(value.indexOf('-')>-1)){
+      tokens.push({ type: kind, start: sectionStart, end, value });
+
+    }
   }
   if (kind === TokenKind.OpenTagEnd || kind === TokenKind.CloseTag) {
     sectionStart = end + 1;

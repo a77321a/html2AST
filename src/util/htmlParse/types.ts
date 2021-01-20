@@ -5,48 +5,47 @@ export enum SyntaxKind {
   Tag = 'Tag',
 }
 // 基础节点
-export interface BaseNode {
-  start: number;
-  end: number;
-}
+// export interface BaseNode {
+//   start: number;
+//   end: number;
+// }
 // 文本节点
-export interface Text extends BaseNode {
+export interface Text  {
   type: SyntaxKind.Text;
   value: string;
 }
 // 属性值
-export interface AttributeValue extends BaseNode {
+export interface AttributeValue  {
   value: string;
   quote: "'" | '"' | undefined;
 }
 // 属性
-export interface Attribute extends BaseNode {
+export interface Attribute {
   name: Text;
   value: AttributeValue | undefined;
 }
 // 标准tag
-export interface Tag extends BaseNode {
+export interface Tag  {
   type: SyntaxKind.Tag;
-  // 节点起始标签
-  tagOpen: Text;
+  start:number;
+  end:number;
+  parent: Tag | void;
+  // 开启标签全部
+  tagOpen: Text | string;
   // 节点名
   name: string;
   // 原始节点名
-  rawName: string;
+  tagName: string;
   // 属性列表
   attributes: Attribute[];
-  // class 类名
-  className: [],
-  // 
-  attributeMap: Record<string, Attribute> | undefined;
   // 子节点列表, 如果是一个非自闭合的标签, 并且起始标签已结束, 则为一个数组
   children:
     | Array<Tag | Text> 
-    | undefined // 如果是一个自闭合的标签, 则为undefind
+    | void // 如果是一个自闭合的标签, 则为void
     | null;  // 如果起始标签未结束, 则为null
-  tagClose:
+  tagClose:| string
     | Text // 关闭标签部分, 存在则为一个文本
-    | undefined // 自闭合的标签没有关闭部分
+    | void // 自闭合的标签没有关闭部分
     | null; // 非自闭合标签, 但是没有关闭标签部分
 }
 

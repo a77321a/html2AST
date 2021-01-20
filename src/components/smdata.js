@@ -1,3 +1,3 @@
-const htmlStr = `<body style=""><div data-v-7ba5bd90="" id="app"></div></body>`
+const htmlStr = `<body><!----></body>`
 
 export default htmlStr

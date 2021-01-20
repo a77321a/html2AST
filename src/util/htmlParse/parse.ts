@@ -21,7 +21,7 @@ export interface ParseOptions {
 let index: number;
 let count: number;
 let tokens: Token[];
-let tagChain: Context | undefined;
+let target: Context | undefined;
 let nodes: VNode[];
 let token: Token;
 let node: Text | undefined;
@@ -41,7 +41,7 @@ function init(input?: string, options?: ParseOptions) {
   }
   
   index = 0;
-  tagChain = void 0;
+  target = void 0;
   nodes = [];
   token = void 0 as any;
   node = void 0;
@@ -50,23 +50,31 @@ function init(input?: string, options?: ParseOptions) {
 }
 
 function pushNode(_node: Tag | Text) {
-  if (!tagChain) {
+  // 当前标签
+  if (!target) {
     nodes.push(_node);
   } else if (
     _node.type === SyntaxKind.Tag &&
-    _node.name === tagChain.tag.name &&
+    _node.name === target.tag.name &&
     noNestedTags[_node.name]
   ) {
-    tagChain = tagChain.parent;
+    target = target.parent;
     pushNode(_node);
-  } else if (tagChain.tag.children) {
-    tagChain.tag.end = _node.end;
-    tagChain.tag.children.push(_node);
+  } else if (target.tag.children) {
+    if(_node.type === SyntaxKind.Text){
+      target.tag.tagOpen.value += _node.value
+      target.tag.end = _node.end
+    }else{
+      target.tag.end = _node.end
+      _node.parent = target
+      target.tag.children.push(_node);
+    }
+    
   }
 }
 
 function pushTagChain(tag: Tag) {
-  tagChain = { parent: tagChain, tag: tag };
+  target = { parent: target, tag: tag };
   node = void 0;
 }
 
@@ -82,7 +90,7 @@ function createTag(): Tag {
     tagOpen: createLiteral(token.start - 1), // not finished
     className:[],
     name: token.value,
-    rawName: buffer.substring(token.start, token.end),
+    tagName: buffer.substring(token.start, token.end),
     attributes: [],
     attributeMap: void 0,
     children: null,
@@ -128,15 +136,8 @@ function unexpected() {
   const [line, column] = getPosition(lines, token.start);
   throw new Error(
     `Unexpected token "${token.value}(${token.type})" at [${line},${column}]` +
-      (tagChain ? ` when parsing tag: ${JSON.stringify(tagChain.tag.name)}.` : ''),
+      (target ? ` when parsing tag: ${JSON.stringify(target.tag.name)}.` : ''),
   );
-}
-
-function buildAttributeMap(tag: Tag) {
-  tag.attributeMap = {};
-  for (const attr of tag.attributes) {
-    tag.attributeMap[attr.name.value] = attr;
-  }
 }
 
 const enum OpenTagState {
@@ -235,7 +236,7 @@ function parseOpenTag() {
 }
 
 function parseCloseTag() {
-  let _context = tagChain;
+  let _context = target;
   while (true) {
     if (!_context || token.value.trim() === _context.tag.name) {
       break;
@@ -252,9 +253,31 @@ function parseCloseTag() {
   );
   _context.tag.end = _context.tag.tagClose.end;
   _context = _context.parent;
-  tagChain = _context;
+  target = _context;
+}
+function formatAttr(attrList:any){
+  const _attrList:any = []
+  attrList.forEach(i => {
+    _attrList.push({
+      key:i.name.value,
+      value:i.value.value
+    })
+  });
+  return _attrList
 }
 
+function formatNode(nodeTree :Tag[]):void{
+  for(const i in nodeTree){
+    nodeTree[i].attributes = nodeTree[i].attributes && formatAttr(nodeTree[i].attributes)
+    delete nodeTree[i].end
+    delete nodeTree[i].start
+    nodeTree[i].tagClose = nodeTree[i].tagClose?.value
+    nodeTree[i].tagOpen = nodeTree[i].tagOpen?.value
+    if(Array.isArray(nodeTree[i].children)){
+      formatNode(nodeTree[i].children as Tag[])
+    }
+  }
+}
 export function parse(input: string, options?: ParseOptions): VNode[] {
   init(input, {
     setAttributeMap: false,
@@ -262,6 +285,7 @@ export function parse(input: string, options?: ParseOptions): VNode[] {
   } as ParseOptions);
   while (index < count) {
     token = tokens[index];
+    // eslint-disable-next-line no-debugger
     switch (token.type) {
       case TokenKind.Literal:
         if (!node) {
@@ -286,15 +310,8 @@ export function parse(input: string, options?: ParseOptions): VNode[] {
     index++;
   }
   const _nodes = nodes;
-  if (parseOptions?.setAttributeMap) {
-    walk(_nodes, {
-      enter(node: Text | Tag): void {
-        if (node.type === SyntaxKind.Tag) {
-          buildAttributeMap(node);
-        }
-      },
-    });
-  }
   init();
+  formatNode(_nodes);
   return _nodes;
 }
+

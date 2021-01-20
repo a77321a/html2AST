@@ -2,9 +2,11 @@
   <div class="hello">
     <el-tree default-expand-all :data="astTree" @node-click="handleNodeClick" :props="defaultProps">
       <span class="custom-tree-node" slot-scope="{ node, data }">
-        <span>{{ data.tagOpen ?  data.tagOpen.value :node.label}}</span>
-        </span>
+        <span>{{ data.type =='Tag' ? data.tagOpen : data.value}}</span>
+        <span>{{ data.type =='Tag' ? data.tagClose : ''}}</span>
+      </span>
     </el-tree>
+    <!-- <span v-html="htmlstr"></span> -->
   </div>
 </template>
 
@@ -23,6 +25,7 @@ import htmlstr from "./smdata";
   }
 })
 export default class HelloWorld extends Vue {
+  @Provide() htmlstr = htmlstr;
   @Provide() astTree: any = [];
   @Provide() astString = "11";
   @Provide() defaultProps:Record<string, any> = {
