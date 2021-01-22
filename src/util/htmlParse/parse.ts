@@ -260,7 +260,7 @@ function formatAttr(attrList:any){
   attrList.forEach(i => {
     _attrList.push({
       key:i.name.value,
-      value:i.value.value
+      value:i.value?.value
     })
   });
   return _attrList
